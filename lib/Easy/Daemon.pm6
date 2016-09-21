@@ -204,14 +204,17 @@ class Daemon is export {
 =head1 NAME
 
 Easy::Daemon - Quick & easy daemon manager. 
+
 Lets you run custom commands as daemon, exactly one instance at a time.
 
 =head1 SYNOPSIS
 
 Install liblockfile with your favourite package manager
+
   sudo aptitude install liblockfile
 
 Install me
+
   git clone https://github.com/Andrzej111/easy-daemon.git
   cd easy-daemon
   panda install .
@@ -228,7 +231,8 @@ Generate example config in default place, run and see what happens
 =head1 DESCRIPTION
 
 Easy::Daemon allows to define daemon-like programs on Linux and (prolly) OSX.
-Needs fork, kill, … from standard C library and liblockfile to run
+Needs fork, kill, … from standard C library and liblockfile to run.
+
 More specifig description in progress…
 
 =head1 BUGS

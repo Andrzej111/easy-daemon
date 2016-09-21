@@ -17,7 +17,7 @@
     "NativeSymbols" : "lib/NativeSymbols.pm6"
   },
   "resources" : [ ],
-  "source-url" : "",
+  "source-url" : "git://github.com/Andrzej111/easy-daemon.git",
   "test-depends" : [
     "Test"
   ],
