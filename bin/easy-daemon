@@ -1,0 +1,111 @@
+#!/usr/bin/env perl6
+use v6;
+use Misc::Helpers;
+use Easy::Daemon;
+use Config;
+my @POSSIBLE-PATHS = "%*ENV<HOME>/.easy-daemon/config.json", "/etc/easy-daemon-config.json";
+
+multi MAIN('config','generate', $output-file = Any) {
+    generate-template($output-file);
+}
+
+multi MAIN('config') is export {
+    my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    dump $*conf-file;
+}
+
+
+sub create-daemon-candidate($name --> Daemon) {
+     unless $name ∈ %*PROGRAMS-DEFINITIONS.keys {
+        say "Can't find $name program in config file ( $*conf-file )";
+        exit 
+    }
+    my %prog = %*PROGRAMS-DEFINITIONS{$name};
+    my $d = new Daemon: $*PID-LOCK-DIR, $name, %prog;
+
+}
+
+multi MAIN('start', $name) is export {
+my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    my $d = create-daemon-candidate $name;
+    $d.start;
+}
+multi MAIN('start-all') is export {
+my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    my @all;
+    for %*PROGRAMS-DEFINITIONS.keys -> $name {
+        push @all, start {
+            my $d = create-daemon-candidate $name;
+            $d.start;
+        }
+    }
+    await Promise.allof(@all);
+}
+
+multi MAIN('stop', $name) is export {
+my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    my $d = create-daemon-candidate $name;
+    $d.stop;
+}
+multi MAIN('stop-all') is export {
+my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    my @all;
+    for %*PROGRAMS-DEFINITIONS.keys -> $name {
+        push @all, start {
+            my $d = create-daemon-candidate $name;
+            $d.stop;
+        }
+    }
+    await Promise.allof(@all);
+}
+
+multi MAIN('status', $name) is export {
+my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    my $d = create-daemon-candidate $name;
+    note "Service $name is " ~ $d.status;
+}
+multi MAIN('status-all') is export {
+    my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    for %*PROGRAMS-DEFINITIONS.keys -> $name {
+        my $d = create-daemon-candidate( $name );
+        say fill-right($name,20) ~ "\t" ~ {$d.daemon-id ~~ Nil ?? "-" !! $d.daemon-id }()  ~ "\t" ~ $d.status;
+    }
+}
+
+multi MAIN('restart', $name) is export {
+    my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    my $d = create-daemon-candidate $name;
+    $d.restart;
+}
+
+sub USAGE(){
+    print Q:c:to/EOH/;
+    Usage: {$*PROGRAM-NAME} <action> [options]
+
+    Actions:
+        start    <service-name>
+        stop     <service-name>  
+        restart  <service-name>
+        status   <service-name>
+        start-all
+        stop-all
+        status-all
+        config [generate [<output-file>]]
+    {service-names()}
+    EOH
+}
+
+sub service-names( --> Str ) {
+    my $ok = False;
+    my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS);
+    try {
+        ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+        $ok = True;
+    } 
+    if $ok {
+        return ("\nService names:\n\t" ~ %*PROGRAMS-DEFINITIONS.keys.join("\n\t"));
+    } else { return "";}
+    
+    
+}
+
