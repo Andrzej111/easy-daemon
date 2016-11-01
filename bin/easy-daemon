@@ -1,0 +1,131 @@
+#!/usr/bin/env perl6
+use v6;
+use UNIX::Daemonize;
+use UNIX::Daemonize::EasyDaemon;
+my @POSSIBLE-PATHS = "%*ENV<HOME>/.easy-daemon/config.json", "/etc/easy-daemon-config.json";
+
+multi MAIN('config','generate', $output-file = Any) {
+    generate-template($output-file);
+}
+
+multi MAIN('config') is export {
+    my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    dump $*conf-file;
+}
+
+multi MAIN('start', $name) is export {
+    my (@args, %kwargs);
+# don't know how to do it correctly
+    @args = parse-to-arguments($name, @POSSIBLE-PATHS);
+    say @args[0];
+    %kwargs = (@args[1..*-1]).kv.hash;
+    daemonize(|@args[0], |%kwargs{0});
+}
+
+multi MAIN('stop', $name) {
+    my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+     unless $name ∈ %*PROGRAMS-DEFINITIONS.keys {
+        say "Can't find $name program in config file ( $*conf-file )";
+        exit 1;
+    }
+    terminate-process-group-from-file("$*PID-LOCK-DIR/$name");
+}
+
+multi MAIN('stop-all') {
+    
+}
+
+multi MAIN('args', $name) {
+    say parse-to-arguments($name,@POSSIBLE-PATHS);
+}
+
+#sub create-daemon-candidate($name --> Daemon) {
+     #unless $name ∈ %*PROGRAMS-DEFINITIONS.keys {
+        #say "Can't find $name program in config file ( $*conf-file )";
+        #exit 
+    #}
+    #my %prog = %*PROGRAMS-DEFINITIONS{$name};
+    #my $d = new Daemon: $*PID-LOCK-DIR, $name, %prog;
+
+#}
+
+#multi MAIN('start-all') is export {
+#my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    #my @all;
+    #for %*PROGRAMS-DEFINITIONS.keys -> $name {
+        #push @all, start {
+            #my $d = create-daemon-candidate $name;
+            #$d.start;
+        #}
+    #}
+    #await Promise.allof(@all);
+#}
+
+#multi MAIN('stop', $name) is export {
+#my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    #my $d = create-daemon-candidate $name;
+    #$d.stop;
+#}
+#multi MAIN('stop-all') is export {
+#my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    #my @all;
+    #for %*PROGRAMS-DEFINITIONS.keys -> $name {
+        #push @all, start {
+            #my $d = create-daemon-candidate $name;
+            #$d.stop;
+        #}
+    #}
+    #await Promise.allof(@all);
+#}
+
+#multi MAIN('status', $name) is export {
+#my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    #my $d = create-daemon-candidate $name;
+    #note "Service $name is " ~ $d.status;
+#}
+#multi MAIN('status-all') is export {
+    #my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    #for %*PROGRAMS-DEFINITIONS.keys -> $name {
+        #my $d = create-daemon-candidate( $name );
+        #say fill-right($name,20) ~ "\t" ~ {$d.daemon-id ~~ Nil ?? "-" !! $d.daemon-id }()  ~ "\t" ~ $d.status;
+    #}
+#}
+
+#multi MAIN('restart', $name) is export {
+    #my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+    #my $d = create-daemon-candidate $name;
+    #$d.restart;
+#}
+
+sub USAGE(){
+    print Q:c:to/EOH/;
+    Usage: {$*PROGRAM-NAME} <action> [options]
+
+    Actions:
+            start    <service-name>
+            stop     <service-name>  
+            restart  <service-name>
+            status   <service-name>
+            start-all
+            stop-all
+            status-all
+            config [generate [<output-file>]]
+
+    {dump-service-names()}
+    EOH
+}
+
+sub dump-service-names( --> Str ) {
+    my $ok = False;
+    my ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS);
+    try {
+        ($*conf-file, $*PID-LOCK-DIR, %*PROGRAMS-DEFINITIONS) = load-config @POSSIBLE-PATHS;
+        $ok = True;
+    } 
+    if $ok {
+        return ("Service names:\n\t" ~ %*PROGRAMS-DEFINITIONS.keys.join("\n\t"));
+    } else { return ("No config file loaded, searched in (ordered):\n- " ~ @POSSIBLE-PATHS.join("\n- "));}
+    
+    
+}
+

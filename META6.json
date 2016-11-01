@@ -1,0 +1,24 @@
+{
+  "authors" : [
+    "Pawe\u0142 Szulc"
+  ],
+  "build-depends" : [ ],
+  "depends" : [
+    "UNIX::Daemonize",
+    "Config::Simple",
+    "JSON::Pretty",
+    "Data::Dump"
+  ],
+  "description" : "Quick & easy daemon manager for UNIX written in Perl6.",
+  "name" : "UNIX::Daemonize::EasyDaemon",
+  "perl" : "6.c",
+  "provides" : {
+    "UNIX::Daemonize::EasyDaemon" : "lib/UNIX/Daemonize/EasyDaemon.pm6"
+  },
+  "resources" : [ ],
+  "source-url" : "git://github.com/hipek8/easy-daemon.git",
+  "test-depends" : [
+    "Test"
+  ],
+  "version" : "*"
+}
